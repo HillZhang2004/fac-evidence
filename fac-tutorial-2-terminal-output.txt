@@ -1,0 +1,582 @@
+$ pwd
+/Users/hillll/fac-real-tutorial
+
+$ hostname
+MacBook-Air-1312.local
+
+$ /usr/bin/sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+
+$ /Users/hillll/fac-venv/bin/python --version
+Python 3.12.12
+
+$ git --no-optional-locks -C /Users/hillll/fac rev-parse HEAD
+2a099e6e97db390fa578a33edf9f66d61aec5818
+
+$ git --no-optional-locks -C /Users/hillll/fac status --porcelain=v1 --untracked-files=all
+
+$ git --no-optional-locks -C /Users/hillll/fac-real-tutorial rev-parse HEAD
+f52744a13165930431583fe7ae00ad8d8fa7b699
+
+$ git --no-optional-locks -C /Users/hillll/fac-real-tutorial status --porcelain=v1 --untracked-files=all
+
+$ cat /Users/hillll/fac-real-tutorial/fac.yaml
+outline.json:
+  description: |
+    Produce a structured outline for the essay topic given in the
+    additional user instructions. The essay is a general-purpose
+    history essay, not tied to any particular subject.
+
+    Each supporting argument should be a single sentence that stands
+    on its own.
+  schema: |
+    {
+      "type": "object",
+      "properties": {
+        "section_title": {
+          "type": "string",
+          "description": "1-6 word English title"
+        },
+        "main_thesis": {
+          "type": "string",
+          "description": "1-3 sentence thesis statement"
+        },
+        "supporting_arguments": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 3,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "section_title",
+        "main_thesis",
+        "supporting_arguments"
+      ]
+    }
+  model: groq/openai/gpt-oss-20b
+
+sections/$SECTION/about.md:
+  description: |
+    Write one full section (3-5 paragraphs) of the essay.
+
+    The overall thesis of the essay is:
+    $MAIN_THESIS
+
+    The specific argument that THIS section must make is:
+    $ARGUMENT
+
+    Ground the argument in concrete historical detail.
+  model: groq/openai/gpt-oss-20b
+  dependencies:
+    - target: outline.json
+      include: false
+    - target: style_guide.md
+      in_fac.yaml: false
+  variables:
+    SECTION: |
+      jq -r '.supporting_arguments | keys[]' outline.json
+    ARGUMENT: |
+      jq -r ".supporting_arguments[$SECTION]" outline.json
+    MAIN_THESIS: |
+      jq -r '.main_thesis' outline.json
+
+final.md:
+  cmd: |
+    {
+      jq -r '"# " + .section_title' outline.json
+      echo
+      jq -r .main_thesis outline.json
+      for f in sections/*/about.md; do
+        echo
+        echo "## $f"
+        echo
+        cat "$f"
+      done
+    } > final.md
+  dependencies:
+    - sections/$SECTION/about.md
+
+$ cat /Users/hillll/fac-real-tutorial/style_guide.md
+You are drafting a history essay in the register of a Cambridge Tripos paper.
+
+Rules:
+- Argue directly. Do not hedge with "arguably", "perhaps", or "it could be said".
+- Prefer the past tense and concrete historical actors.
+- Cite at least one named place, person, or date per paragraph.
+- Keep sentences short and declarative.
+- Never restate the thesis verbatim; develop it.
+
+For each essay section, end with a sentence explicitly comparing German and Italian unification.
+
+$ cat /Users/hillll/fac-real-tutorial/README.md
+# fac LLM Workflow Lab
+
+A hands-on project exploring LLM workflow orchestration, dynamic dependencies, structured outputs, and incremental rebuilding using the `fac` framework.
+
+## What This Project Demonstrates
+
+- Generate a structured essay outline with an LLM.
+- Validate the output against a JSON Schema.
+- Dynamically create four section-writing tasks from the outline.
+- Execute independent LLM tasks concurrently.
+- Assemble the generated sections into a final document.
+- Reuse existing outputs when inputs have not changed.
+- Rebuild dependent outputs when upstream instructions change.
+
+## Project Files
+
+- `fac.yaml` — Workflow configuration and dependencies.
+- `style_guide.md` — Instructions for the generated sections.
+- `outline.json` — LLM-generated structured outline.
+- `sections/` — Dynamically generated essay sections.
+- `final.md` — Assembled essay.
+
+## Experiments
+
+The workflow was tested using Groq-hosted LLM inference.
+
+In a repeat execution with unchanged inputs, all targets were reused without new LLM generation.
+
+After modifying the style guide, the four sections were regenerated and the final essay was rebuilt, while the existing outline was reused.
+
+These experiments demonstrate workflow behavior in this example; they are not a comprehensive reliability evaluation.
+
+## Limitations
+
+The generated historical essay is illustrative and has not been fact-checked. Successful execution and structural validation do not guarantee factual correctness.
+
+## Acknowledgments
+
+This project uses [`fac`](https://github.com/mikeizbicki/fac), a workflow orchestration framework developed by Professor Michael Izbicki.
+
+Credit for the underlying framework belongs to Professor Izbicki. This repository contains my own tutorial configuration, generated artifacts, experiments, and observations.
+
+$ sed -n 851,854p /Users/hillll/fac/fac/BuildContext.py
+            elif major_type == 'text':
+                text, usage = await llm.text_async(self.prompt, model=self.config.get('model'))
+                with open(self.path, 'wt', encoding='utf-8') as fout:
+                    fout.write(text)
+
+$ sed -n 230,233p /Users/hillll/fac/fac/LLM.py
+        # extract provider/model info from input model name
+        if model is None:
+            model = self.default_text_model
+        provider, model_name = model.split('/', 1)
+
+$ sed -n 254,266p /Users/hillll/fac/fac/LLM.py
+        client = openai.AsyncOpenAI(
+            api_key = os.environ.get(registered_providers[provider]['apikey']),
+            base_url = registered_providers[provider]['base_url'],
+        )
+        for i in range(max_iter):
+            try:
+                result = await client.chat.completions.create(
+                    messages=list(messages) + new_messages,
+                    model=model_name,
+                    seed=seed,
+                    tools=tools,
+                    stream=False,
+                    extra_body=extra_body,
+
+$ /Users/hillll/fac-venv/bin/python -B -c 'from pathlib import Path
+import ast, json, os, sys
+from fac.Config import load_config
+source = Path("/Users/hillll/fac/fac/LLM.py")
+tree = ast.parse(source.read_text())
+providers = next(ast.literal_eval(n.value) for n in tree.body
+    if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "registered_providers" for t in n.targets))
+config = load_config("fac.yaml")
+ready = True
+for target, options in config.items():
+    if "cmd" in options:
+        continue
+    model = options.get("model")
+    if model != "groq/openai/gpt-oss-20b":
+        print("STOP: configured model differs from the requested existing Groq model.", file=sys.stderr)
+        sys.exit(2)
+    provider, sdk_model = model.split("/", 1)
+    key_name = providers[provider]["apikey"]
+    available = bool(os.environ.get(key_name))
+    print(json.dumps({"target":target,"configured_model":model,"provider":provider,
+        "sdk_model":sdk_model,"base_url":providers[provider]["base_url"],
+        "required_key_variable":key_name,"key_available":available}))
+    ready = ready and available
+if not ready:
+    print("STOP: required GROQ_API_KEY is unavailable. No tutorial commands or model calls executed.", file=sys.stderr)
+    sys.exit(2)
+print("Required Groq key is available; its value was not displayed.")
+'
+STOP: required GROQ_API_KEY is unavailable. No tutorial commands or model calls executed.
+{"target": "outline.json", "configured_model": "groq/openai/gpt-oss-20b", "provider": "groq", "sdk_model": "openai/gpt-oss-20b", "base_url": "https://api.groq.com/openai/v1", "required_key_variable": "GROQ_API_KEY", "key_available": false}
+{"target": "sections/$SECTION/about.md", "configured_model": "groq/openai/gpt-oss-20b", "provider": "groq", "sdk_model": "openai/gpt-oss-20b", "base_url": "https://api.groq.com/openai/v1", "required_key_variable": "GROQ_API_KEY", "key_available": false}
+
+$ date -Iseconds
+2026-11-12T09:15:39-08:00
+
+$ hostname
+MacBook-Air-1312.local
+
+$ /usr/bin/sw_vers
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+
+$ /Users/hillll/fac-venv/bin/python --version
+Python 3.12.12
+
+$ git --no-optional-locks -C /Users/hillll/fac rev-parse HEAD
+2a099e6e97db390fa578a33edf9f66d61aec5818
+
+$ git --no-optional-locks -C /Users/hillll/fac-real-tutorial rev-parse HEAD
+f52744a13165930431583fe7ae00ad8d8fa7b699
+
+$ cat fac.yaml
+outline.json:
+  description: |
+    Produce a structured outline for the essay topic given in the
+    additional user instructions. The essay is a general-purpose
+    history essay, not tied to any particular subject.
+
+    Each supporting argument should be a single sentence that stands
+    on its own.
+  schema: |
+    {
+      "type": "object",
+      "properties": {
+        "section_title": {
+          "type": "string",
+          "description": "1-6 word English title"
+        },
+        "main_thesis": {
+          "type": "string",
+          "description": "1-3 sentence thesis statement"
+        },
+        "supporting_arguments": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 3,
+          "maxItems": 5
+        }
+      },
+      "required": [
+        "section_title",
+        "main_thesis",
+        "supporting_arguments"
+      ]
+    }
+  model: groq/openai/gpt-oss-20b
+
+sections/$SECTION/about.md:
+  description: |
+    Write one full section (3-5 paragraphs) of the essay.
+
+    The overall thesis of the essay is:
+    $MAIN_THESIS
+
+    The specific argument that THIS section must make is:
+    $ARGUMENT
+
+    Ground the argument in concrete historical detail.
+  model: groq/openai/gpt-oss-20b
+  dependencies:
+    - target: outline.json
+      include: false
+    - target: style_guide.md
+      in_fac.yaml: false
+  variables:
+    SECTION: |
+      jq -r '.supporting_arguments | keys[]' outline.json
+    ARGUMENT: |
+      jq -r ".supporting_arguments[$SECTION]" outline.json
+    MAIN_THESIS: |
+      jq -r '.main_thesis' outline.json
+
+final.md:
+  cmd: |
+    {
+      jq -r '"# " + .section_title' outline.json
+      echo
+      jq -r .main_thesis outline.json
+      for f in sections/*/about.md; do
+        echo
+        echo "## $f"
+        echo
+        cat "$f"
+      done
+    } > final.md
+  dependencies:
+    - sections/$SECTION/about.md
+
+$ cat style_guide.md
+You are drafting a history essay in the register of a Cambridge Tripos paper.
+
+Rules:
+- Argue directly. Do not hedge with "arguably", "perhaps", or "it could be said".
+- Prefer the past tense and concrete historical actors.
+- Cite at least one named place, person, or date per paragraph.
+- Keep sentences short and declarative.
+- Never restate the thesis verbatim; develop it.
+
+For each essay section, end with a sentence explicitly comparing German and Italian unification.
+
+$ cat .gitignore
+# fac execution logs and metadata
+.buildlog
+*.buildlog
+*.facjson
+
+# API credentials and local environment
+.env
+.env.*
+!.env.example
+.venv/
+
+# Python and macOS files
+__pycache__/
+*.pyc
+.DS_Store
+
+.fac.log
+
+$ /Users/hillll/fac-venv/bin/python -B -c 'import ast,json,os,sys
+from pathlib import Path
+from fac.Config import load_config
+source=ast.parse(Path("/Users/hillll/fac/fac/LLM.py").read_text())
+providers=next(ast.literal_eval(n.value) for n in source.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=="registered_providers" for t in n.targets))
+for target,config in load_config("fac.yaml").items():
+    if "cmd" in config: continue
+    model=config.get("model")
+    if model!="groq/openai/gpt-oss-20b":
+        print("STOP: configured model differs from the requested Groq model.",file=sys.stderr);sys.exit(2)
+    provider,sdk_model=model.split("/",1)
+    required_key=providers[provider]["apikey"]
+    available=bool(os.environ.get(required_key))
+    print(json.dumps({"target":target,"model":model,"provider":provider,"sdk_model":sdk_model,"base_url":providers[provider]["base_url"],"required_key":required_key,"key_available":available}))
+    if not available: sys.exit(2)
+'
+{"target": "outline.json", "model": "groq/openai/gpt-oss-20b", "provider": "groq", "sdk_model": "openai/gpt-oss-20b", "base_url": "https://api.groq.com/openai/v1", "required_key": "GROQ_API_KEY", "key_available": true}
+{"target": "sections/$SECTION/about.md", "model": "groq/openai/gpt-oss-20b", "provider": "groq", "sdk_model": "openai/gpt-oss-20b", "base_url": "https://api.groq.com/openai/v1", "required_key": "GROQ_API_KEY", "key_available": true}
+
+$ mktemp -d -t fac-tutorial-live
+/var/folders/15/yv3100xj2pn36v_d8crbss1h0000gn/T/fac-tutorial-live.i2OtnFFrdf
+
+$ pwd
+/private/var/folders/15/yv3100xj2pn36v_d8crbss1h0000gn/T/fac-tutorial-live.i2OtnFFrdf
+
+$ cp -p /Users/hillll/fac-real-tutorial/fac.yaml /Users/hillll/fac-real-tutorial/style_guide.md /Users/hillll/fac-real-tutorial/.gitignore .
+
+$ git init
+Initialized empty Git repository in /private/var/folders/15/yv3100xj2pn36v_d8crbss1h0000gn/T/fac-tutorial-live.i2OtnFFrdf/.git/
+
+$ git add .gitignore
+
+$ git commit -m 'add gitignore'
+[main (root-commit) 76526d2] add gitignore
+ 1 file changed, 17 insertions(+)
+ create mode 100644 .gitignore
+
+$ git add style_guide.md
+
+$ git commit -m 'add style guide'
+[main b397185] add style guide
+ 1 file changed, 10 insertions(+)
+ create mode 100644 style_guide.md
+
+$ git add fac.yaml
+
+$ git commit -m 'create fac.yaml'
+[main a0ab4b0] create fac.yaml
+ 1 file changed, 75 insertions(+)
+ create mode 100644 fac.yaml
+
+$ fac outline.json '--include_prompt=The essay is about how Prussia unified into Germany, compared to how the Italian states unified.'
+├── ['new'] outline.json
+│   context:
+│     normalized_target: outline.json
+├── building 1 context
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── built outline.json
+├── finalizing job 0
+
+$ cat outline.json
+{
+    "section_title": "Prussia and Italy: Paths to Unification",
+    "main_thesis": "While both Prussia and the Italian states ultimately unified into nation-states, Prussia achieved its goal through militaristic dominance and political leadership under Bismarck, whereas Italian unification was largely propelled by nationalist sentiment and a series of wars under leaders like Cavour and Garibaldi.",
+    "supporting_arguments": [
+        "Prussia leveraged its powerful army to force smaller German states into the North German Confederation, creating a foundation for the German Empire.",
+        "The Italian unification relied on popular nationalist movements and the charismatic leadership of Giuseppe Garibaldi, who mobilized volunteer forces to capture key territories.",
+        "Bismarck's Realpolitik strategy involved diplomatic isolation of rival powers and calculated alliances, enabling swift consolidation of German states.",
+        "Cavour's diplomatic acumen secured French support for the Second Italian War of Independence, demonstrating the importance of international alliances in Italy's unification."
+    ]
+}
+$ fac final.md
+├── ['up-to-date'] style_guide.md
+├── ['up-to-date'] outline.json
+├── ['new'] sections/0002/about.md
+│   context:
+│     normalized_target: sections/$SECTION/about.md
+│     variables_resolved:
+│       SECTION: '0002'
+│       MAIN_THESIS: While both Prussia and the Italian states ultimately unified into nation-states, Prussia achieved its goal through militaristic dominance and political leadership under Bismarck, whereas Italian unification was largely propelled by nationalist sentiment and a series of wars under leaders like Cavour and Garibaldi.
+│       ARGUMENT: Bismarck's Realpolitik strategy involved diplomatic isolation of rival powers and calculated alliances, enabling swift consolidation of German states.
+│     dependencies_built:
+│     - target: outline.json
+│       include: false
+│     - target: style_guide.md
+│       in_fac.yaml: false
+├── ['new'] sections/0000/about.md
+│   context:
+│     normalized_target: sections/$SECTION/about.md
+│     variables_resolved:
+│       SECTION: '0000'
+│       MAIN_THESIS: While both Prussia and the Italian states ultimately unified into nation-states, Prussia achieved its goal through militaristic dominance and political leadership under Bismarck, whereas Italian unification was largely propelled by nationalist sentiment and a series of wars under leaders like Cavour and Garibaldi.
+│       ARGUMENT: Prussia leveraged its powerful army to force smaller German states into the North German Confederation, creating a foundation for the German Empire.
+│     dependencies_built:
+│     - target: outline.json
+│       include: false
+│     - target: style_guide.md
+│       in_fac.yaml: false
+├── ['new'] sections/0001/about.md
+│   context:
+│     normalized_target: sections/$SECTION/about.md
+│     variables_resolved:
+│       SECTION: '0001'
+│       MAIN_THESIS: While both Prussia and the Italian states ultimately unified into nation-states, Prussia achieved its goal through militaristic dominance and political leadership under Bismarck, whereas Italian unification was largely propelled by nationalist sentiment and a series of wars under leaders like Cavour and Garibaldi.
+│       ARGUMENT: The Italian unification relied on popular nationalist movements and the charismatic leadership of Giuseppe Garibaldi, who mobilized volunteer forces to capture key territories.
+│     dependencies_built:
+│     - target: outline.json
+│       include: false
+│     - target: style_guide.md
+│       in_fac.yaml: false
+├── ['new'] sections/0003/about.md
+│   context:
+│     normalized_target: sections/$SECTION/about.md
+│     variables_resolved:
+│       SECTION: '0003'
+│       MAIN_THESIS: While both Prussia and the Italian states ultimately unified into nation-states, Prussia achieved its goal through militaristic dominance and political leadership under Bismarck, whereas Italian unification was largely propelled by nationalist sentiment and a series of wars under leaders like Cavour and Garibaldi.
+│       ARGUMENT: Cavour's diplomatic acumen secured French support for the Second Italian War of Independence, demonstrating the importance of international alliances in Italy's unification.
+│     dependencies_built:
+│     - target: outline.json
+│       include: false
+│     - target: style_guide.md
+│       in_fac.yaml: false
+├── building 4 contexts with max_workers=20
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── fixing markdown formatting in path=sections/0002/about.md
+│   ├── built sections/0002/about.md
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── fixing markdown formatting in path=sections/0003/about.md
+│   ├── built sections/0003/about.md
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── fixing markdown formatting in path=sections/0000/about.md
+│   ├── built sections/0000/about.md
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   ├── [WARNING] model="groq/openai/gpt-oss-20b" not in registered_models
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── fixing markdown formatting in path=sections/0001/about.md
+│   ├── built sections/0001/about.md
+├── ['new'] final.md
+│   context:
+│     normalized_target: final.md
+│     dependencies_built:
+│     - target: sections/0000/about.md
+│     - target: sections/0001/about.md
+│     - target: sections/0002/about.md
+│     - target: sections/0003/about.md
+├── building 1 context
+│   ├── fixing markdown formatting in path=final.md
+│   ├── built final.md
+├── finalizing job 0
+
+$ ls sections/
+0000
+0001
+0002
+0003
+
+$ head -1 final.md
+# Prussia and Italy: Paths to Unification
+
+$ cat final.md
+# Prussia and Italy: Paths to Unification
+
+While both Prussia and the Italian states ultimately unified into nation-states, Prussia achieved its goal through militaristic dominance and political leadership under Bismarck, whereas Italian unification was largely propelled by nationalist sentiment and a series of wars under leaders like Cavour and Garibaldi.
+
+## sections/0000/about.md
+
+In 1864, Prussia fought Denmark in the Second Schleswig War. The Prussian army seized Schleswig and Holstein. Bismarck used the victory to display Prussian might.
+
+In 1866, Prussia attacked Austria in the Austro‑Prussian War. The Battle of Königgrätz ended Austrian influence in Germany. Prussian troops annexed Hanover, Hesse, and Brunswick.
+
+In 1868, the North German Confederation was formed. Prussia acted as its sovereign ruler. The confederation's constitution gave Prussian officers supreme command.
+
+German unification relied on militaristic dominance and political leadership under Bismarck. In contrast, Italian unification relied on nationalist sentiment and diplomatic alliances.
+
+## sections/0001/about.md
+
+The 1848 revolutions ignited a surge of nationalist sentiment across the Italian peninsula. In the city of Milan, a crowd demanded constitutional reforms, and the call for a united Italy spread through the streets of Naples and the valleys of Piedmont. The intellectual ferment of Giuseppe Mazzini’s “Young Italy” encouraged ordinary citizens to envision a single nation-state. The year 1848 marked the beginning of a grassroots movement that would later shape the country’s destiny.
+
+Giuseppe Garibaldi harnessed this fervour by leading the Expedition of the Thousand in 1860. In Palermo he landed a volunteer army that marched north through Sicily, capturing strategic towns such as Messina and Catania. The charismatic commander used the slogan “Il popolo italiano si unisce” to rally supporters. Garibaldi’s forces seized control of the Kingdom of the Two Sicilies and brought the southern territories under the banner of the emerging Italian nation. By August 1860, the island of Sicily had been annexed into the united state.
+
+The war continued into 1867 when Garibaldi’s volunteers entered Rome from the south. The Battle of Collesalvetti, fought on 26 September, forced the Papal forces to retreat. In 1870 the Italian army captured Rome, and the capital was incorporated into the Kingdom of Italy. Garibaldi’s leadership of the volunteer brigades remained pivotal throughout this phase of unification, demonstrating the power of popular military action.
+
+Italian unification relied on popular nationalist movements and the charismatic leadership of Giuseppe Garibaldi, whose volunteer forces captured key territories such as Sicily, Naples, and Rome. In contrast, Prussia unified its states through Bismarck’s calculated diplomacy and militaristic domination. Unlike Prussia, which united through Bismarck’s strategic statecraft and decisive war campaigns, Italy’s nation‑state emerged from the grassroots mobilization of volunteer armies under Garibaldi.
+
+## sections/0002/about.md
+
+**Bismarck’s Realpolitik and the Rapid Consolidation of German States**
+
+Bismarck entered the Prussian premiership in 1862, immediately setting a tone of calculated diplomacy. He isolated Austria by securing the 1864 Treaty of Berlin with Denmark, thereby preventing a potential alliance that could threaten Prussian hegemony. The Prussian victory in the Schleswig‑Holstein war demonstrated that Bismarck could combine diplomatic maneuvering with decisive military action to keep rival powers at bay.
+
+In 1865 Bismarck orchestrated the Ems Dispatch to provoke a diplomatic crisis with Austria. The resulting Austro‑Prussian War in 1866 saw Prussia form strategic alliances with Saxony and Hanover, while France stayed neutral. Prussia’s swift victory at the Battle of Königgrätz on 1 July 1866 cemented its dominance over the German states and paved the way for the North German Confederation.
+
+Bismarck’s mastery of alliance politics became evident in the 1870 Franco‑Prussian War. He kept France isolated by securing guarantees from Britain and Italy, then leveraged the Prussian army’s rapid mobilization to win the decisive Battle of Sedan on 1 September 1870. The capitulation of Napoleon III and the subsequent proclamation of the German Empire on 18 January 1871 in the Hall of Mirrors at Versailles marked the culmination of his Realpolitik strategy.
+
+German unification was achieved through Bismarck’s diplomatic isolation of rival powers and calculated alliances, a stark contrast to the Italian experience, where nationalist sentiment and leaders like Cavour and Garibaldi drove the unification process.
+
+## sections/0003/about.md
+
+Cavour’s diplomatic skill was decisive in turning Italian nationalism into a concrete military campaign. In 1859, the Kingdom of Piedmont–Sardinia confronted the Austrian Empire in Lombardy. Cavour, the prime minister of Piedmont, had long sought a powerful ally to counter Austrian dominance. He negotiated a secret treaty with the French Empire, securing the commitment of Napoleon III to deploy a French army in Italy. This alliance demonstrated that Italy’s unification required external support rather than relying solely on internal militancy.
+
+The pivotal meeting occurred at Plombières-les-Bains in October 1858. Cavour and Napoleon III drafted the Plombières Convention, a clandestine pact that outlined the terms of French intervention. The agreement stipulated that France would provide 200,000 troops, while Piedmont would contribute 80,000. In return, France would receive the Lombardy provinces after the war. By securing French backing, Cavour neutralised the threat of Austrian retaliation and laid a diplomatic foundation for Italian expansion.
+
+The alliance paid off at the Battle of Magenta on 4 June 1859. French and Piedmontese forces crushed the Austrian army led by General Ferenc Gyulay. A second engagement at Solferino on 24 June further confirmed the effectiveness of the Franco‑Piedmontese coalition. The victories forced Austria to cede Lombardy to Piedmont, fulfilling the treaty’s conditions. Cavour’s diplomatic acumen, therefore, directly translated into military success, underscoring the importance of alliances in Italy’s unification.
+
+Unlike Prussia’s militaristic consolidation under Bismarck, Italy’s unification hinged on diplomatic alliances, especially Cavour’s negotiation of French support, which proved essential for the Second Italian War of Independence.
+
+$ find . -type f '!' -path './.git/*' '!' -name fac.yaml '!' -name style_guide.md '!' -name .gitignore -print
+./.fac.log
+./sections/0003/.about.md.buildlog
+./sections/0003/.about.md.facjson
+./sections/0003/about.md
+./sections/0002/.about.md.buildlog
+./sections/0002/.about.md.facjson
+./sections/0002/about.md
+./sections/0000/.about.md.buildlog
+./sections/0000/.about.md.facjson
+./sections/0000/about.md
+./sections/0001/.about.md.buildlog
+./sections/0001/.about.md.facjson
+./sections/0001/about.md
+./.outline.json.buildlog
+./.final.md.buildlog
+./.outline.json.facjson
+./.buildlog
+./outline.json
+./final.md
+./.final.md.facjson
+
+$ git --no-optional-locks -C /Users/hillll/fac status --porcelain=v1 --untracked-files=all
+
+$ git --no-optional-locks -C /Users/hillll/fac-real-tutorial status --porcelain=v1 --untracked-files=all

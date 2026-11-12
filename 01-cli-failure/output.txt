@@ -1,0 +1,168 @@
+Selected existing records for master 2a099e6e97db390fa578a33edf9f66d61aec5818.
+Input files and captured streams below are copied verbatim.
+STDOUT and STDERR were saved separately; their original interleaving is not reconstructed.
+
+
+========== ORIGINAL INPUT SCRIPTS ==========
+
+--- fail.sh ---
+#!/usr/bin/env bash
+set -eu
+printf 'failing shell stdout\n'
+printf 'failing shell stderr\n' >&2
+exit 7
+
+
+
+--- succeed.sh ---
+#!/usr/bin/env bash
+set -eu
+printf 'successful shell stdout\n'
+printf 'successful shell stderr\n' >&2
+printf 'control artifact\n' > result.txt
+exit 0
+
+
+
+
+========== failure — ORIGINAL CONFIGURATION ==========
+
+--- fac.yaml ---
+result.txt:
+  cmd: bash fail.sh
+
+
+
+========== failure — DIRECT SHELL ==========
+
+--- RECORDED COMMAND ---
+bash fail.sh
+
+
+--- STDOUT (saved separately) ---
+failing shell stdout
+
+
+--- STDERR (saved separately) ---
+failing shell stderr
+
+
+--- EXIT CODE ---
+7
+
+
+
+========== failure — FAC CLI ==========
+
+--- RECORDED COMMAND ---
+'<PYTHON>' -B -m fac --no-auto_commit --max_workers 1 --print_context_states result.txt
+
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [],
+  "build_error": [
+    "result.txt"
+  ]
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['new'] result.txt
+│   context:
+│     normalized_target: result.txt
+├── building 1 context
+│   ├── [38;5;208m[WARNING] build command output for path result.txt:[0m
+│   │   [38;5;208m[WARNING] failing shell stdout[0m
+│   │   [38;5;208m[WARNING] failing shell stderr[0m
+│   ├── [31m[ERROR] error building path 'result.txt': cmd failed with exit code 7[0m
+│   │   [31m[ERROR] cmd:[0m
+│   │   [31m[ERROR]   line 1: bash fail.sh[0m
+│   │   [31m[ERROR] context:[0m
+│   │   [31m[ERROR]   normalized_target: result.txt[0m
+├── [31m[ERROR] 1 build(s) failed: ['result.txt'][0m
+├── [38;5;208m[WARNING] cannot finalize job 0; has_error=True[0m
+
+
+--- EXIT CODE ---
+0
+
+
+
+========== success-control — ORIGINAL CONFIGURATION ==========
+
+--- fac.yaml ---
+result.txt:
+  cmd: bash succeed.sh
+
+
+
+========== success-control — DIRECT SHELL ==========
+
+--- RECORDED COMMAND ---
+bash succeed.sh
+
+
+--- STDOUT (saved separately) ---
+successful shell stdout
+
+
+--- STDERR (saved separately) ---
+successful shell stderr
+
+
+--- EXIT CODE ---
+0
+
+
+
+========== success-control — FAC CLI ==========
+
+--- RECORDED COMMAND ---
+'<PYTHON>' -B -m fac --no-auto_commit --max_workers 1 --print_context_states result.txt
+
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "result.txt"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['new'] result.txt
+│   context:
+│     normalized_target: result.txt
+├── building 1 context
+│   ├── [38;5;208m[WARNING] build command output for path result.txt:[0m
+│   │   [38;5;208m[WARNING] successful shell stdout[0m
+│   │   [38;5;208m[WARNING] successful shell stderr[0m
+│   ├── built result.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+--- GENERATED result.txt ---
+control artifact
+

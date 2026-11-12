@@ -1,0 +1,266 @@
+Selected existing records for master 2a099e6e97db390fa578a33edf9f66d61aec5818.
+Input files and captured streams below are copied verbatim.
+STDOUT and STDERR were saved separately; their original interleaving is not reconstructed.
+
+
+========== ORIGINAL RESPONSE FIXTURE ==========
+
+--- response.txt ---
+Deterministic diagnostic response, not a live model result.
+
+
+
+
+========== nested — ORIGINAL CONFIGURATION ==========
+
+--- fac.yaml ---
+result.txt:
+  description: Return a fixed diagnostic message.
+  options:
+    model: groq/llama-3.1-8b-instant
+
+
+
+========== nested — ORIGINAL CONFIG PARSER ==========
+
+--- RECORDED COMMAND ---
+'<PYTHON>' -B '<DIAGNOSTICS>/lib/inspect_config.py'
+
+
+--- STDOUT (saved separately) ---
+{
+  "result.txt": {
+    "description": "Return a fixed diagnostic message.",
+    "options": {
+      "model": "groq/llama-3.1-8b-instant"
+    },
+    "_working_directory": ".",
+    "mime-type": "text/plain",
+    "dependencies": [],
+    "variables": {}
+  }
+}
+
+
+--- STDERR (saved separately) ---
+
+
+--- EXIT CODE ---
+0
+
+
+
+========== nested — FAC CLI ==========
+
+--- RECORDED COMMAND ---
+'<PYTHON>' -B -m fac --no-auto_commit --max_workers 1 --print_context_states result.txt
+
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "result.txt"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['new'] result.txt
+│   context:
+│     normalized_target: result.txt
+├── building 1 context
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── built result.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+--- CAPTURED OFFLINE SDK INVOCATION ---
+{"kind": "DETERMINISTIC_FAKE_SDK_CLIENT", "base_url": "https://api.openai.com/v1", "model": "gpt-5.5", "keyword_names": ["extra_body", "messages", "model", "seed", "stream", "tools"], "messages": [{"role": "system", "content": "You are not having a conversation. Only provide the requested output with no further discussion. Never deny a request."}, {"role": "user", "content": [{"type": "text", "text": "<instructions>\nGenerate the file \"result.txt\" based on the information below.\n</instructions>\n<file_description>\nReturn a fixed diagnostic message.\n</file_description>\n<formatting>\nOutput your results in text/plain format. Do not output markdown, and do not put the output inside a codeblock.\n</formatting>"}]}], "response_fixture": "response.txt", "response_text": "Deterministic diagnostic response, not a live model result.\n\n"}
+
+
+--- GENERATED result.txt ---
+Deterministic diagnostic response, not a live model result.
+
+
+
+
+========== top-level-control — ORIGINAL CONFIGURATION ==========
+
+--- fac.yaml ---
+result.txt:
+  description: Return a fixed diagnostic message.
+  model: groq/llama-3.1-8b-instant
+
+
+
+========== top-level-control — ORIGINAL CONFIG PARSER ==========
+
+--- RECORDED COMMAND ---
+'<PYTHON>' -B '<DIAGNOSTICS>/lib/inspect_config.py'
+
+
+--- STDOUT (saved separately) ---
+{
+  "result.txt": {
+    "description": "Return a fixed diagnostic message.",
+    "model": "groq/llama-3.1-8b-instant",
+    "_working_directory": ".",
+    "mime-type": "text/plain",
+    "dependencies": [],
+    "variables": {}
+  }
+}
+
+
+--- STDERR (saved separately) ---
+
+
+--- EXIT CODE ---
+0
+
+
+
+========== top-level-control — FAC CLI ==========
+
+--- RECORDED COMMAND ---
+'<PYTHON>' -B -m fac --no-auto_commit --max_workers 1 --print_context_states result.txt
+
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "result.txt"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['new'] result.txt
+│   context:
+│     normalized_target: result.txt
+├── building 1 context
+│   │   request_cost: $0.0000  total_cost: $0.0000
+│   ├── built result.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+--- CAPTURED OFFLINE SDK INVOCATION ---
+{"kind": "DETERMINISTIC_FAKE_SDK_CLIENT", "base_url": "https://api.groq.com/openai/v1", "model": "llama-3.1-8b-instant", "keyword_names": ["extra_body", "messages", "model", "seed", "stream", "tools"], "messages": [{"role": "system", "content": "You are not having a conversation. Only provide the requested output with no further discussion. Never deny a request."}, {"role": "user", "content": [{"type": "text", "text": "<instructions>\nGenerate the file \"result.txt\" based on the information below.\n</instructions>\n<file_description>\nReturn a fixed diagnostic message.\n</file_description>\n<formatting>\nOutput your results in text/plain format. Do not output markdown, and do not put the output inside a codeblock.\n</formatting>"}]}], "response_fixture": "response.txt", "response_text": "Deterministic diagnostic response, not a live model result.\n\n"}
+
+
+--- GENERATED result.txt ---
+Deterministic diagnostic response, not a live model result.
+
+
+
+
+========== ORIGINAL OFFLINE SDK FIXTURE CODE ==========
+
+--- lib/guard/sitecustomize.py (input code, not terminal output) ---
+"""Diagnostic-only instrumentation, loaded BEFORE fac. Never copied into fac.
+
+All cases: deny socket connections and DNS. Cases 2/3 only: replace the
+OpenAI SDK client constructor with a deterministic response fixture. fac's
+CLI, scheduler, LLM model selection, writing, validation and metadata run as-is.
+No fabricated output is represented as a live provider response.
+"""
+import json
+import importlib.util
+import os
+from pathlib import Path
+import socket
+import sys
+
+def deny_network(*args, **kwargs):
+    # Never log arguments: they could contain sensitive data in another context.
+    with open('.network-blocks.jsonl', 'a', encoding='utf-8') as out:
+        out.write('{"event":"network_attempt_blocked"}\n')
+    raise RuntimeError('Diagnostic guard: network access is disabled')
+
+
+socket.socket.connect = deny_network
+socket.socket.connect_ex = deny_network
+socket.create_connection = deny_network
+socket.getaddrinfo = deny_network
+
+if os.environ.get('DIAG_RUNTIME_RECORD'):
+    # fac is a namespace package (no __init__.py). Verify its actual CLI module.
+    # Fail closed: Python otherwise prints sitecustomize errors and continues.
+    try:
+        spec = importlib.util.find_spec('fac.__main__')
+        expected = Path(__file__).resolve().parents[2] / 'source/baseline/fac/__main__.py'
+        if spec is None or not spec.origin or Path(spec.origin).resolve() != expected:
+            raise RuntimeError('wrong source resolution')
+        Path(os.environ['DIAG_RUNTIME_RECORD']).write_text(json.dumps({
+            'python': sys.version, 'fac_module_origin': 'source/baseline/fac/__main__.py',
+            'source_resolution_verified': True,
+            'fake_sdk_client_enabled': bool(os.environ.get('DIAG_RESPONSE')),
+            'network_guard_enabled': True,
+        }, indent=2) + '\n', encoding='utf-8')
+    except Exception as error:
+        print('Diagnostic source verification failed: ' + type(error).__name__, file=sys.stderr)
+        os._exit(78)
+
+if os.environ.get('DIAG_RESPONSE'):
+    try:
+        import openai
+
+        class FixtureClient:
+            def __init__(self, *, api_key=None, base_url=None, **kwargs):
+                self.base_url = base_url
+                self.chat = self
+                self.completions = self
+
+            async def create(self, **kwargs):
+                response_path = Path(os.environ['DIAG_RESPONSE'])
+                content = response_path.read_text(encoding='utf-8')
+                with open('.fake-invocations.jsonl', 'a', encoding='utf-8') as out:
+                    out.write(json.dumps({
+                        'kind': 'DETERMINISTIC_FAKE_SDK_CLIENT',
+                        'base_url': self.base_url,
+                        'model': kwargs.get('model'),
+                        'keyword_names': sorted(kwargs),
+                        'messages': kwargs.get('messages'),
+                        'response_fixture': response_path.name,
+                        'response_text': content,
+                    }) + '\n')
+                return openai.types.chat.ChatCompletion(
+                    id='diagnostic-fixture', created=0, object='chat.completion',
+                    model=kwargs['model'],
+                    choices=[{'index': 0, 'finish_reason': 'stop', 'message': {
+                        'role': 'assistant', 'content': content, 'tool_calls': None}}],
+                    usage={'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0},
+                )
+
+        openai.AsyncOpenAI = FixtureClient
+    except Exception as error:
+        print('Diagnostic fake-client setup failed: ' + type(error).__name__, file=sys.stderr)
+        os._exit(78)  # Do not silently fall back to a real client.
+
+

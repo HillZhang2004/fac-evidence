@@ -1,0 +1,796 @@
+Selected existing records for master 2a099e6e97db390fa578a33edf9f66d61aec5818.
+Input files and captured streams below are copied verbatim.
+STDOUT and STDERR were saved separately; their original interleaving is not reconstructed.
+
+
+========== valid / native — ORIGINAL INPUTS ==========
+
+--- fac.yaml ---
+record.json:
+  cmd: '''<DIAG_PYTHON>''
+    -B produce.py'
+  schema_file: schema.json
+consumer.txt:
+  cmd: '''<DIAG_PYTHON>''
+    -B -c ''from pathlib import Path; Path(''"''"''consumer.txt''"''"'').write_bytes(Path(''"''"''record.json''"''"'').read_bytes())'''
+  dependencies:
+  - record.json
+
+
+--- produce.py ---
+from pathlib import Path
+with Path("producer.calls").open("a") as f: f.write("generated\n")
+Path("record.json").write_text('{"count": 1}\n')
+
+
+--- schema.json ---
+{
+  "properties": {
+    "count": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "count"
+  ],
+  "type": "object"
+}
+
+
+
+========== valid / native / attempt-1 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "consumer.txt",
+    "record.json"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['new'] record.json
+│   context:
+│     normalized_target: record.json
+├── building 1 context
+│   ├── built record.json
+├── ['new'] consumer.txt
+│   context:
+│     normalized_target: consumer.txt
+│     dependencies_built:
+│     - target: record.json
+├── building 1 context
+│   ├── built consumer.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+
+========== valid / native / attempt-2 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "consumer.txt",
+    "record.json"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['up-to-date'] record.json
+├── ['up-to-date'] consumer.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+--- FINAL SAVED FILE record.json ---
+{
+    "count": 1
+}
+
+--- FINAL SAVED FILE consumer.txt ---
+{
+    "count": 1
+}
+
+--- FINAL SAVED FILE producer.calls ---
+generated
+
+
+
+========== valid / validation-dependency — ORIGINAL INPUTS ==========
+
+--- fac.yaml ---
+record.json:
+  cmd: '''<DIAG_PYTHON>''
+    -B produce.py'
+  schema_file: schema.json
+schema.json: {}
+validated.txt:
+  cmd: '''<DIAG_PYTHON>''
+    -B gate.py'
+  dependencies:
+  - record.json
+  - schema.json
+consumer.txt:
+  cmd: '''<DIAG_PYTHON>''
+    -B -c ''from pathlib import Path; Path(''"''"''consumer.txt''"''"'').write_bytes(Path(''"''"''record.json''"''"'').read_bytes())'''
+  dependencies:
+  - validated.txt
+
+
+--- produce.py ---
+from pathlib import Path
+with Path("producer.calls").open("a") as f: f.write("generated\n")
+Path("record.json").write_text('{"count": 1}\n')
+
+
+--- schema.json ---
+{
+  "properties": {
+    "count": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "count"
+  ],
+  "type": "object"
+}
+
+
+--- gate.py ---
+from pathlib import Path
+import json
+import jsonschema
+schema = json.loads(Path("schema.json").read_text())
+data = json.loads(Path("record.json").read_text())
+jsonschema.validate(data, schema)
+Path("validated.txt").write_text("validated\n")
+
+
+
+========== valid / validation-dependency / attempt-1 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "consumer.txt",
+    "record.json",
+    "schema.json",
+    "validated.txt"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['up-to-date'] schema.json
+├── ['new'] record.json
+│   context:
+│     normalized_target: record.json
+├── building 1 context
+│   ├── built record.json
+├── ['new'] validated.txt
+│   context:
+│     normalized_target: validated.txt
+│     dependencies_built:
+│     - target: record.json
+│     - target: schema.json
+├── building 1 context
+│   ├── built validated.txt
+├── ['new'] consumer.txt
+│   context:
+│     normalized_target: consumer.txt
+│     dependencies_built:
+│     - target: validated.txt
+├── building 1 context
+│   ├── built consumer.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+
+========== valid / validation-dependency / attempt-2 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "consumer.txt",
+    "record.json",
+    "schema.json",
+    "validated.txt"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['up-to-date'] schema.json
+├── ['up-to-date'] record.json
+├── ['up-to-date'] validated.txt
+├── ['up-to-date'] consumer.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+--- FINAL SAVED FILE record.json ---
+{
+    "count": 1
+}
+
+--- FINAL SAVED FILE consumer.txt ---
+{
+    "count": 1
+}
+
+--- FINAL SAVED FILE producer.calls ---
+generated
+
+
+
+========== invalid-type / native — ORIGINAL INPUTS ==========
+
+--- fac.yaml ---
+record.json:
+  cmd: '''<DIAG_PYTHON>''
+    -B produce.py'
+  schema_file: schema.json
+consumer.txt:
+  cmd: '''<DIAG_PYTHON>''
+    -B -c ''from pathlib import Path; Path(''"''"''consumer.txt''"''"'').write_bytes(Path(''"''"''record.json''"''"'').read_bytes())'''
+  dependencies:
+  - record.json
+
+
+--- produce.py ---
+from pathlib import Path
+with Path("producer.calls").open("a") as f: f.write("generated\n")
+Path("record.json").write_text('{"count": 1}\n')
+
+
+--- schema.json ---
+{
+  "type": "not_a_json_schema_type"
+}
+
+
+
+========== invalid-type / native / attempt-1 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['new'] record.json
+│   context:
+│     normalized_target: record.json
+├── building 1 context
+│   ├── [31m[ERROR] error in schema syntax[0m
+│   │   [31m[ERROR] 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] Failed validating 'anyOf' in metaschema['properties']['type']:[0m
+│   │   [31m[ERROR]     {'anyOf': [{'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                {'type': 'array',[0m
+│   │   [31m[ERROR]                 'items': {'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                 'minItems': 1,[0m
+│   │   [31m[ERROR]                 'uniqueItems': True}]}[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] On schema['type']:[0m
+│   │   [31m[ERROR]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] error in schema syntax[0m
+│   │   [31m[ERROR] 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] Failed validating 'anyOf' in metaschema['properties']['type']:[0m
+│   │   [31m[ERROR]     {'anyOf': [{'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                {'type': 'array',[0m
+│   │   [31m[ERROR]                 'items': {'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                 'minItems': 1,[0m
+│   │   [31m[ERROR]                 'uniqueItems': True}]}[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] On schema['type']:[0m
+│   │   [31m[ERROR]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] error in schema syntax[0m
+│   │   [31m[ERROR] 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] Failed validating 'anyOf' in metaschema['properties']['type']:[0m
+│   │   [31m[ERROR]     {'anyOf': [{'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                {'type': 'array',[0m
+│   │   [31m[ERROR]                 'items': {'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                 'minItems': 1,[0m
+│   │   [31m[ERROR]                 'uniqueItems': True}]}[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] On schema['type']:[0m
+│   │   [31m[ERROR]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] unknown failure when building record.json: see traceback below; fac will stop after all build processes complete[0m
+Traceback (most recent call last):
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 1256, in _build_context
+    await context.build()
+  File "<PINNED_SOURCE>/master/fac/BuildContext.py", line 892, in build
+    validate_file(self.path, self.config.get('schema_file'), fix=True)
+  File "<PINNED_SOURCE>/master/fac/io_utils.py", line 67, in validate_file
+    jsonschema.validate(instance=data, schema=schema)
+  File "<DIAG_ENV>/lib/python3.12/site-packages/jsonschema/validators.py", line 1328, in validate
+    cls.check_schema(schema)
+  File "<DIAG_ENV>/lib/python3.12/site-packages/jsonschema/validators.py", line 316, in check_schema
+    raise exceptions.SchemaError.create_from(error)
+jsonschema.exceptions.SchemaError: 'not_a_json_schema_type' is not valid under any of the given schemas
+
+Failed validating 'anyOf' in metaschema['allOf'][3]['properties']['type']:
+    {'anyOf': [{'$ref': '#/$defs/simpleTypes'},
+               {'type': 'array',
+                'items': {'$ref': '#/$defs/simpleTypes'},
+                'minItems': 1,
+                'uniqueItems': True}]}
+
+On schema['type']:
+    'not_a_json_schema_type'
+├── [31m[ERROR] 1 build(s) failed: ['record.json'][0m
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "<PINNED_SOURCE>/master/fac/__main__.py", line 63, in <module>
+    main()
+  File "<PINNED_SOURCE>/master/fac/__main__.py", line 54, in main
+    fac.build_all()
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 271, in build_all
+    loop.run_until_complete(self.async_build_all())
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 324, in async_build_all
+    await self.process_all_build_required()
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 1300, in process_all_build_required
+    raise FACError(failures[0][1])
+fac.Errors.FACError: 'not_a_json_schema_type' is not valid under any of the given schemas
+
+Failed validating 'anyOf' in metaschema['allOf'][3]['properties']['type']:
+    {'anyOf': [{'$ref': '#/$defs/simpleTypes'},
+               {'type': 'array',
+                'items': {'$ref': '#/$defs/simpleTypes'},
+                'minItems': 1,
+                'uniqueItems': True}]}
+
+On schema['type']:
+    'not_a_json_schema_type'
+
+
+--- EXIT CODE ---
+1
+
+
+
+========== invalid-type / native / attempt-2 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+{
+  "stale": [],
+  "notbuilt": [],
+  "unresolved": [],
+  "waiting": [],
+  "phantom": [],
+  "buildable": [],
+  "build_required": [],
+  "built": [
+    "consumer.txt",
+    "record.json"
+  ],
+  "build_error": []
+}
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['up-to-date'] record.json
+├── ['new'] consumer.txt
+│   context:
+│     normalized_target: consumer.txt
+│     dependencies_built:
+│     - target: record.json
+├── building 1 context
+│   ├── built consumer.txt
+├── finalizing job 0
+
+
+--- EXIT CODE ---
+0
+
+
+--- FINAL SAVED FILE record.json ---
+{"count": 1}
+
+
+--- FINAL SAVED FILE consumer.txt ---
+{"count": 1}
+
+
+--- FINAL SAVED FILE producer.calls ---
+generated
+
+
+
+========== invalid-type / validation-dependency — ORIGINAL INPUTS ==========
+
+--- fac.yaml ---
+record.json:
+  cmd: '''<DIAG_PYTHON>''
+    -B produce.py'
+  schema_file: schema.json
+schema.json: {}
+validated.txt:
+  cmd: '''<DIAG_PYTHON>''
+    -B gate.py'
+  dependencies:
+  - record.json
+  - schema.json
+consumer.txt:
+  cmd: '''<DIAG_PYTHON>''
+    -B -c ''from pathlib import Path; Path(''"''"''consumer.txt''"''"'').write_bytes(Path(''"''"''record.json''"''"'').read_bytes())'''
+  dependencies:
+  - validated.txt
+
+
+--- produce.py ---
+from pathlib import Path
+with Path("producer.calls").open("a") as f: f.write("generated\n")
+Path("record.json").write_text('{"count": 1}\n')
+
+
+--- schema.json ---
+{
+  "type": "not_a_json_schema_type"
+}
+
+
+--- gate.py ---
+from pathlib import Path
+import json
+import jsonschema
+schema = json.loads(Path("schema.json").read_text())
+data = json.loads(Path("record.json").read_text())
+jsonschema.validate(data, schema)
+Path("validated.txt").write_text("validated\n")
+
+
+
+========== invalid-type / validation-dependency / attempt-1 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['up-to-date'] schema.json
+├── ['new'] record.json
+│   context:
+│     normalized_target: record.json
+├── building 1 context
+│   ├── [31m[ERROR] error in schema syntax[0m
+│   │   [31m[ERROR] 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] Failed validating 'anyOf' in metaschema['properties']['type']:[0m
+│   │   [31m[ERROR]     {'anyOf': [{'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                {'type': 'array',[0m
+│   │   [31m[ERROR]                 'items': {'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                 'minItems': 1,[0m
+│   │   [31m[ERROR]                 'uniqueItems': True}]}[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] On schema['type']:[0m
+│   │   [31m[ERROR]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] error in schema syntax[0m
+│   │   [31m[ERROR] 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] Failed validating 'anyOf' in metaschema['properties']['type']:[0m
+│   │   [31m[ERROR]     {'anyOf': [{'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                {'type': 'array',[0m
+│   │   [31m[ERROR]                 'items': {'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                 'minItems': 1,[0m
+│   │   [31m[ERROR]                 'uniqueItems': True}]}[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] On schema['type']:[0m
+│   │   [31m[ERROR]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] error in schema syntax[0m
+│   │   [31m[ERROR] 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] Failed validating 'anyOf' in metaschema['properties']['type']:[0m
+│   │   [31m[ERROR]     {'anyOf': [{'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                {'type': 'array',[0m
+│   │   [31m[ERROR]                 'items': {'$ref': '#/definitions/simpleTypes'},[0m
+│   │   [31m[ERROR]                 'minItems': 1,[0m
+│   │   [31m[ERROR]                 'uniqueItems': True}]}[0m
+│   │   [31m[ERROR] [0m
+│   │   [31m[ERROR] On schema['type']:[0m
+│   │   [31m[ERROR]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] unknown failure when building record.json: see traceback below; fac will stop after all build processes complete[0m
+Traceback (most recent call last):
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 1256, in _build_context
+    await context.build()
+  File "<PINNED_SOURCE>/master/fac/BuildContext.py", line 892, in build
+    validate_file(self.path, self.config.get('schema_file'), fix=True)
+  File "<PINNED_SOURCE>/master/fac/io_utils.py", line 67, in validate_file
+    jsonschema.validate(instance=data, schema=schema)
+  File "<DIAG_ENV>/lib/python3.12/site-packages/jsonschema/validators.py", line 1328, in validate
+    cls.check_schema(schema)
+  File "<DIAG_ENV>/lib/python3.12/site-packages/jsonschema/validators.py", line 316, in check_schema
+    raise exceptions.SchemaError.create_from(error)
+jsonschema.exceptions.SchemaError: 'not_a_json_schema_type' is not valid under any of the given schemas
+
+Failed validating 'anyOf' in metaschema['allOf'][3]['properties']['type']:
+    {'anyOf': [{'$ref': '#/$defs/simpleTypes'},
+               {'type': 'array',
+                'items': {'$ref': '#/$defs/simpleTypes'},
+                'minItems': 1,
+                'uniqueItems': True}]}
+
+On schema['type']:
+    'not_a_json_schema_type'
+├── [31m[ERROR] 1 build(s) failed: ['record.json'][0m
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "<PINNED_SOURCE>/master/fac/__main__.py", line 63, in <module>
+    main()
+  File "<PINNED_SOURCE>/master/fac/__main__.py", line 54, in main
+    fac.build_all()
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 271, in build_all
+    loop.run_until_complete(self.async_build_all())
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 324, in async_build_all
+    await self.process_all_build_required()
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 1300, in process_all_build_required
+    raise FACError(failures[0][1])
+fac.Errors.FACError: 'not_a_json_schema_type' is not valid under any of the given schemas
+
+Failed validating 'anyOf' in metaschema['allOf'][3]['properties']['type']:
+    {'anyOf': [{'$ref': '#/$defs/simpleTypes'},
+               {'type': 'array',
+                'items': {'$ref': '#/$defs/simpleTypes'},
+                'minItems': 1,
+                'uniqueItems': True}]}
+
+On schema['type']:
+    'not_a_json_schema_type'
+
+
+--- EXIT CODE ---
+1
+
+
+
+========== invalid-type / validation-dependency / attempt-2 ==========
+
+--- RECORDED COMMAND ARGUMENTS (verbatim JSON argv; original path placeholders retained) ---
+[
+    "<DIAG_PYTHON>",
+    "-B",
+    "-m",
+    "fac",
+    "--no-auto_commit",
+    "--max_workers",
+    "1",
+    "--debug.halt_on_error",
+    "--print_context_states",
+    "consumer.txt"
+  ]
+
+--- STDOUT (saved separately) ---
+
+
+--- STDERR (saved separately) ---
+[38;5;208m[WARNING] git repo is dirty but proceeding with --allow_dirty[0m
+├── ['up-to-date'] schema.json
+├── ['up-to-date'] record.json
+├── ['new'] validated.txt
+│   context:
+│     normalized_target: validated.txt
+│     dependencies_built:
+│     - target: record.json
+│     - target: schema.json
+├── building 1 context
+│   ├── [38;5;208m[WARNING] build command output for path validated.txt:[0m
+│   │   [38;5;208m[WARNING] Traceback (most recent call last):[0m
+│   │   [38;5;208m[WARNING]   File "<ORIGINAL_RUN>/20261105T100233Z-517474-master-invalid-type-validation-dependency/work/gate.py", line 6, in <module>[0m
+│   │   [38;5;208m[WARNING]     jsonschema.validate(data, schema)[0m
+│   │   [38;5;208m[WARNING]   File "<DIAG_ENV>/lib/python3.12/site-packages/jsonschema/validators.py", line 1328, in validate[0m
+│   │   [38;5;208m[WARNING]     cls.check_schema(schema)[0m
+│   │   [38;5;208m[WARNING]   File "<DIAG_ENV>/lib/python3.12/site-packages/jsonschema/validators.py", line 316, in check_schema[0m
+│   │   [38;5;208m[WARNING]     raise exceptions.SchemaError.create_from(error)[0m
+│   │   [38;5;208m[WARNING] jsonschema.exceptions.SchemaError: 'not_a_json_schema_type' is not valid under any of the given schemas[0m
+│   │   [38;5;208m[WARNING] [0m
+│   │   [38;5;208m[WARNING] Failed validating 'anyOf' in metaschema['allOf'][3]['properties']['type']:[0m
+│   │   [38;5;208m[WARNING]     {'anyOf': [{'$ref': '#/$defs/simpleTypes'},[0m
+│   │   [38;5;208m[WARNING]                {'type': 'array',[0m
+│   │   [38;5;208m[WARNING]                 'items': {'$ref': '#/$defs/simpleTypes'},[0m
+│   │   [38;5;208m[WARNING]                 'minItems': 1,[0m
+│   │   [38;5;208m[WARNING]                 'uniqueItems': True}]}[0m
+│   │   [38;5;208m[WARNING] [0m
+│   │   [38;5;208m[WARNING] On schema['type']:[0m
+│   │   [38;5;208m[WARNING]     'not_a_json_schema_type'[0m
+│   ├── [31m[ERROR] error building path 'validated.txt': cmd failed with exit code 1[0m
+│   │   [31m[ERROR] cmd:[0m
+│   │   [31m[ERROR]   line 1: '<DIAG_PYTHON>' -B gate.py[0m
+│   │   [31m[ERROR] context:[0m
+│   │   [31m[ERROR]   normalized_target: validated.txt[0m
+│   │   [31m[ERROR]   dependencies_built:[0m
+│   │   [31m[ERROR]   - target: schema.json[0m
+│   │   [31m[ERROR]   - target: record.json[0m
+├── [31m[ERROR] 1 build(s) failed: ['validated.txt'][0m
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "<PINNED_SOURCE>/master/fac/__main__.py", line 63, in <module>
+    main()
+  File "<PINNED_SOURCE>/master/fac/__main__.py", line 54, in main
+    fac.build_all()
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 271, in build_all
+    loop.run_until_complete(self.async_build_all())
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 324, in async_build_all
+    await self.process_all_build_required()
+  File "<PINNED_SOURCE>/master/fac/Fac.py", line 1300, in process_all_build_required
+    raise FACError(failures[0][1])
+fac.Errors.FACError
+
+
+--- EXIT CODE ---
+1
+
+
+--- FINAL SAVED FILE record.json ---
+{"count": 1}
+
+
+--- FINAL SAVED FILE producer.calls ---
+generated
+
